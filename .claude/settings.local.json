@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /d/STUDY/API/API_Swigger log --oneline -10)"
+    ]
+  }
+}
