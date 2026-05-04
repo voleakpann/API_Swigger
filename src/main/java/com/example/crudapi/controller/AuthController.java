@@ -40,7 +40,7 @@ public class AuthController {
 
     @PostMapping("/send-otp")
     public ResponseEntity<SendOtpResponse> sendOtp(@Valid @RequestBody SendOtpRequest request) {
-        String phone = request.getPhone();
+        String phone = normalizePhone(request.getPhone());
 
         User user = userRepository.findByPhone(phone).orElseGet(() -> {
             User newUser = new User();
@@ -52,23 +52,40 @@ public class AuthController {
         String otp = String.format("%06d", RANDOM.nextInt(1_000_000));
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
 
-        smsService.sendOtp(phone, otp);
+        boolean smsSent = smsService.sendOtp(phone, otp);
 
         user.setOtpCode(otp);
         user.setOtpExpiredAt(expiresAt);
         userRepository.save(user);
 
-        return ResponseEntity.ok(new SendOtpResponse(
-                phone, null, expiresAt, "OTP sent via SMS"));
+        String message = smsSent
+                ? "OTP sent via SMS"
+                : "OTP generated (dev mode - SMS not sent, check server log)";
+        return ResponseEntity.ok(new SendOtpResponse(phone, null, expiresAt, message));
+    }
+
+    private static String normalizePhone(String raw) {
+        String digits = raw.replaceAll("[\\s\\-()]", "").trim();
+        if (digits.startsWith("+")) {
+            return digits;
+        }
+        if (digits.startsWith("855")) {
+            return "+" + digits;
+        }
+        if (digits.startsWith("0")) {
+            return "+855" + digits.substring(1);
+        }
+        return "+855" + digits;
     }
 
     @PostMapping("/verify-otp")
     public ResponseEntity<VerifyOtpResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
-        Optional<User> userOpt = userRepository.findByPhone(request.getPhone());
+        String phone = normalizePhone(request.getPhone());
+        Optional<User> userOpt = userRepository.findByPhone(phone);
 
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new VerifyOtpResponse(request.getPhone(), null, null, "Phone not found"));
+                    .body(new VerifyOtpResponse(phone, null, null, "Phone not found"));
         }
 
         User user = userOpt.get();

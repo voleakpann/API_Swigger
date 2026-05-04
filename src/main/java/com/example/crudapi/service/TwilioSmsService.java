@@ -38,10 +38,10 @@ public class TwilioSmsService implements SmsService {
     }
 
     @Override
-    public void sendOtp(String phone, String otp) {
+    public boolean sendOtp(String phone, String otp) {
         if (!enabled) {
-            log.info("[DEV] SMS to {} -> Your OTP code is: {}", phone, otp);
-            return;
+            log.info("[DEV MODE - no SMS sent] OTP for {} = {}", phone, otp);
+            return false;
         }
         try {
             Message message = Message.creator(
@@ -50,6 +50,7 @@ public class TwilioSmsService implements SmsService {
                     "Your OTP code is: " + otp
             ).create();
             log.info("Sent OTP via Twilio to {} (sid={})", phone, message.getSid());
+            return true;
         } catch (ApiException e) {
             log.error("Twilio SMS failed for {}: {}", phone, e.getMessage());
             throw new SmsDeliveryException("Failed to send OTP via SMS", e);
