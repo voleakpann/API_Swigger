@@ -6,9 +6,8 @@ import com.example.crudapi.dto.VerifyOtpRequest;
 import com.example.crudapi.dto.VerifyOtpResponse;
 import com.example.crudapi.model.User;
 import com.example.crudapi.repository.UserRepository;
+import com.example.crudapi.service.SmsService;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,13 +28,15 @@ import java.util.UUID;
 @CrossOrigin(origins = "*")
 public class AuthController {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private static final int OTP_EXPIRY_MINUTES = 5;
     private static final String DEFAULT_ROLE = "EMPLOYEE";
     private static final SecureRandom RANDOM = new SecureRandom();
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SmsService smsService;
 
     @PostMapping("/send-otp")
     public ResponseEntity<SendOtpResponse> sendOtp(@Valid @RequestBody SendOtpRequest request) {
@@ -51,15 +52,14 @@ public class AuthController {
         String otp = String.format("%06d", RANDOM.nextInt(1_000_000));
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
 
+        smsService.sendOtp(phone, otp);
+
         user.setOtpCode(otp);
         user.setOtpExpiredAt(expiresAt);
         userRepository.save(user);
 
-        log.info("OTP for {} = {} (expires at {})", phone, otp, expiresAt);
-
         return ResponseEntity.ok(new SendOtpResponse(
-                phone, otp, expiresAt,
-                "OTP sent (dev mode: returned in response and logged to console)"));
+                phone, null, expiresAt, "OTP sent via SMS"));
     }
 
     @PostMapping("/verify-otp")
