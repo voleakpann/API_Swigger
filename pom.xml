@@ -94,11 +94,11 @@
             <version>2.5.0</version>
         </dependency>
 
-        <!-- Twilio SDK (SMS provider) -->
+        <!-- Firebase Admin (Phone Auth ID-token verification) -->
         <dependency>
-            <groupId>com.twilio.sdk</groupId>
-            <artifactId>twilio</artifactId>
-            <version>10.4.2</version>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.4.1</version>
         </dependency>
     </dependencies>
 
